@@ -1,5 +1,5 @@
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQvcDIREikTpApPwAT7azCBhMc3-yCltb0WdioLlz2aieLZndFvR8Y6dqv9QE8ZXDaQw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxf8lVj-yoqXv5OxVjKnUIuHjbWQPgNcz39zEWOJSZ3WUa_a1zXWcNJBhZASCI_lxTa8Q/exec';
 // PSGC public API — no key needed (Philippines location data)
 const PSGC_BASE = 'https://psgc.gitlab.io/api';
 // Get agent from session storage (set by login)
@@ -19,9 +19,36 @@ const ITEMS_PER_PAGE = 3;
 
 const $ = id => document.getElementById(id);
 
-// ── SHOW SETUP BANNER IF URL NOT CONFIGURED ────────────────────────────────
-if (APPS_SCRIPT_URL.includes('YOUR_DEPLOYMENT_ID')) {
-  $('setupBanner').classList.add('show');
+// ── JSONP UTILITY ────────────────────────────────────────────────────────
+function jsonp(url, callback) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const callbackName = 'jsonp_callback_' + Math.random().toString(36).substr(2, 9);
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.head.removeChild(script);
+      resolve(data);
+    };
+
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.head.removeChild(script);
+      reject(new Error('JSONP request failed'));
+    };
+
+    document.head.appendChild(script);
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      if (window[callbackName]) {
+        delete window[callbackName];
+        document.head.removeChild(script);
+        reject(new Error('JSONP request timeout'));
+      }
+    }, 10000);
+  });
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────
@@ -80,8 +107,7 @@ async function fetchNextLead() {
   }
 
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getNextLead&agent=${encodeURIComponent(AGENT_NAME)}`);
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?action=getNextLead&agent=${encodeURIComponent(AGENT_NAME)}`);
     if (data.error) { showToast(data.error, 'error'); btn.disabled = false; content.textContent = '▶ Next Lead'; setStatus('READY'); return; }
     populateLead(data.lead);
     updateLeadsCount();
@@ -148,18 +174,14 @@ async function endCall() {
   }
 
   try {
-    const payload = {
+    const params = new URLSearchParams({
       action: 'updateLead',
       row: currentLead.row,
       province, city, barangay,
       remarks, callStatus: status,
       agent: AGENT_NAME
-    };
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
     });
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?${params.toString()}`);
     if (data.success) {
       finishCall(province, city, barangay, status, remarks);
     } else {
@@ -277,8 +299,7 @@ $('cityMunicipality').addEventListener('change', async function() {
 // ── UPDATE LEADS COUNT ───────────────────────────────────────────────────
 async function updateLeadsCount() {
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getLeadsCount&agent=${encodeURIComponent(AGENT_NAME)}`);
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?action=getLeadsCount&agent=${encodeURIComponent(AGENT_NAME)}`);
     if (data.dialedToday !== undefined) {
       $('dialedCount').textContent = data.dialedToday;
     }
@@ -295,8 +316,7 @@ async function updateLeadsCount() {
 // ── LOAD TODAY'S SALES ───────────────────────────────────────────────────────
 async function loadTodaySales() {
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getTodaySales&agent=${encodeURIComponent(AGENT_NAME)}`);
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?action=getTodaySales&agent=${encodeURIComponent(AGENT_NAME)}`);
     salesData = data.sales || [];
     $('salesTotal').textContent = salesData.length;
     salesPage = 1;
@@ -338,8 +358,7 @@ function changeSalesPage(dir) {
 // ── LOAD CALLBACKS ───────────────────────────────────────────────────────────
 async function loadCallbacks() {
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getCallbacks&agent=${encodeURIComponent(AGENT_NAME)}`);
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?action=getCallbacks&agent=${encodeURIComponent(AGENT_NAME)}`);
     callbackData = data.callbacks || [];
     $('callbackTotal').textContent = callbackData.length;
     callbackPage = 1;

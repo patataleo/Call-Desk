@@ -3,6 +3,7 @@ const SHEET_ID = "1d8plWxinKLHok-XasDzp_8X9mRxk1s2OeE-_qLn10v0";
 function doGet(e) {
   const action = e.parameter.action;
   const agent = e.parameter.agent || "Leads";
+  const callback = e.parameter.callback; // JSONP callback
 
   let result;
   if (action === "getNextLead") result = getNextLead(agent);
@@ -11,23 +12,46 @@ function doGet(e) {
   else if (action === "getCallbacks") result = getCallbacks(agent);
   else if (action === "getLeadByRow")
     result = getLeadByRow(e.parameter.row, agent);
+  else if (action === "updateLead") result = updateLead(e.parameter, agent);
   else result = JSON.stringify({ error: "unknown action" });
 
-  return ContentService.createTextOutput(result)
-    .setMimeType(ContentService.MimeType.JSON)
-    .addHeader("Access-Control-Allow-Origin", "*")
-    .addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    .addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  // Use JSONP if callback is provided
+  if (callback) {
+    result = callback + "(" + result + ")";
+    return ContentService.createTextOutput(result).setMimeType(
+      ContentService.MimeType.JAVASCRIPT,
+    );
+  }
+
+  // Fallback to regular JSON (may not work with CORS)
+  return ContentService.createTextOutput(result).setMimeType(
+    ContentService.MimeType.JSON,
+  );
 }
 
 function doPost(e) {
   const data = JSON.parse(e.postData.contents);
   const agent = data.agent || "Leads";
+  const callback = data.callback; // JSONP callback
 
   let result;
   if (data.action === "updateLead") result = updateLead(data, agent);
+  else if (data.action === "addCallback") result = addCallback(data, agent);
+  else if (data.action === "updateCallback")
+    result = updateCallback(data, agent);
+  else if (data.action === "deleteCallback")
+    result = deleteCallback(data, agent);
   else result = JSON.stringify({ error: "unknown action" });
 
+  // Use JSONP if callback is provided
+  if (callback) {
+    result = callback + "(" + result + ")";
+    return ContentService.createTextOutput(result).setMimeType(
+      ContentService.MimeType.JAVASCRIPT,
+    );
+  }
+
+  // Fallback to regular JSON
   return ContentService.createTextOutput(result)
     .setMimeType(ContentService.MimeType.JSON)
     .addHeader("Access-Control-Allow-Origin", "*")
