@@ -1,5 +1,5 @@
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxf8lVj-yoqXv5OxVjKnUIuHjbWQPgNcz39zEWOJSZ3WUa_a1zXWcNJBhZASCI_lxTa8Q/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz5r1BUFh8EO9GKmvLNx1NYHeERdF6IU_Ol1c50NqL4YJdu0et_1sPxToGV5WaRmqME/exec';
 // PSGC public API — no key needed (Philippines location data)
 const PSGC_BASE = 'https://psgc.gitlab.io/api';
 // Get agent from session storage (set by login)
@@ -404,8 +404,7 @@ async function callLead(row) {
     return;
   }
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getLeadByRow&row=${row}&agent=${encodeURIComponent(AGENT_NAME)}`);
-    const data = await res.json();
+    const data = await jsonp(`${APPS_SCRIPT_URL}?action=getLeadByRow&row=${row}&agent=${encodeURIComponent(AGENT_NAME)}`);
     if (data.lead) {
       populateLead(data.lead);
     } else {
@@ -413,6 +412,7 @@ async function callLead(row) {
     }
   } catch (e) {
     showToast('Failed to load lead', 'error');
+    console.error('callLead error:', e);
   }
 }
 
