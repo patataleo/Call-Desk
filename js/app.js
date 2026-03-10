@@ -1,5 +1,5 @@
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzr1PXpf0Dglubs3XewaPNxS7of-9oymkGPPv7aafMPxs4fY_WaSJ4XJynscrHUoRA1DA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQvcDIREikTpApPwAT7azCBhMc3-yCltb0WdioLlz2aieLZndFvR8Y6dqv9QE8ZXDaQw/exec';
 // PSGC public API — no key needed (Philippines location data)
 const PSGC_BASE = 'https://psgc.gitlab.io/api';
 // Get agent from session storage (set by login)

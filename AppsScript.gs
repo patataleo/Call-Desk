@@ -15,7 +15,9 @@ function doGet(e) {
 
   return ContentService.createTextOutput(result)
     .setMimeType(ContentService.MimeType.JSON)
-    .addHeader("Access-Control-Allow-Origin", "*");
+    .addHeader("Access-Control-Allow-Origin", "*")
+    .addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    .addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
 function doPost(e) {
@@ -28,7 +30,16 @@ function doPost(e) {
 
   return ContentService.createTextOutput(result)
     .setMimeType(ContentService.MimeType.JSON)
-    .addHeader("Access-Control-Allow-Origin", "*");
+    .addHeader("Access-Control-Allow-Origin", "*")
+    .addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    .addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput()
+    .addHeader("Access-Control-Allow-Origin", "*")
+    .addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    .addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
 function getNextLead(sheetName) {
