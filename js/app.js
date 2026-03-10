@@ -143,13 +143,21 @@ function populateLead(lead) {
   $('btnNext').disabled = true;
   $('nextBtnContent').textContent = '▶ Next Lead';
   $('btnEnd').disabled = true;
-  $('btnEnd').textContent = 'End Call (15s)';
 
-  // Re-enable end call button after 15 seconds
-  setTimeout(() => {
-    $('btnEnd').disabled = false;
-    $('btnEnd').textContent = '✕ End Call';
-  }, 15000);
+  // Countdown timer for end call button
+  let countdown = 15;
+  $('btnEnd').textContent = `End Call (${countdown}s)`;
+
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      $('btnEnd').textContent = `End Call (${countdown}s)`;
+    } else {
+      clearInterval(countdownInterval);
+      $('btnEnd').disabled = false;
+      $('btnEnd').textContent = '✕ End Call';
+    }
+  }, 1000);
 
   setStatus('IN CALL');
   $('footerNote').textContent = `Lead loaded — Row ${lead.row}`;
