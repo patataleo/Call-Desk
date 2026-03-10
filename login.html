@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Call Desk - Login</title>
+<link rel="icon" type="image/png" href="assets/RVLOGO.jpg" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/login.css" />
+</head>
+<body style="padding: 0px;">
+
+<div class="login-container">
+  <div class="login-wrapper">
+    <div class="login-image">
+      <img src="assets/RVLOGO.jpg" alt="Secure Login" />
+    </div>
+    
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          Call Desk
+        </div>
+        <div class="login-subtitle">Sign in to continue</div>
+      </div>
+
+      <div class="error-msg" id="errorMsg">Invalid username or password</div>
+
+      <form class="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input type="text" id="username" required autocomplete="username" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" required autocomplete="current-password" />
+            <button type="button" class="password-toggle" id="togglePassword" onclick="togglePasswordVisibility(event)">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-next" style="width: 100%; margin-top: 8px;">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Agent credentials - Map username to {password, sheetName}
+const AGENTS = {
+  'AILEEN': { password: 'rv@aileen2026!', sheet: 'AILEEN' },
+  'ANGELA': { password: 'rv@angela2026!', sheet: 'ANGELA' },
+  'ARABELLE': { password: 'rv@arabelle2026!', sheet: 'ARABELLE' },
+  'ARIANNA': { password: 'rv@arianna2026!', sheet: 'ARIANNA' },
+  'ELAIZA': { password: 'rv@elaiza2026!', sheet: 'ELAIZA' },
+  'FRISCA': { password: 'rv@frisca2026!', sheet: 'FRISCA' },
+  'JELLYN': { password: 'rv@jellyn2026!', sheet: 'JELLYN' },
+  'LUISA': { password: 'rv@luisa2026!', sheet: 'LUISA' },
+  'REGINA': { password: 'rv@regina2026!', sheet: 'REGINA' },
+  'ROSELYN': { password: 'rv@roselyn2026!', sheet: 'ROSELYN' },
+  'SHANEL': { password: 'rv@shanel2026!', sheet: 'SHANEL' },
+  'SHERILYN': { password: 'rv@sherilyn2026!', sheet: 'SHERILYN' }
+};
+
+
+function handleLogin(event) {
+  event.preventDefault();
+  
+  const username = document.getElementById('username').value.toUpperCase().trim();
+  const password = document.getElementById('password').value;
+  const errorMsg = document.getElementById('errorMsg');
+  
+  errorMsg.classList.remove('show');
+  
+  if (AGENTS[username] && AGENTS[username].password === password) {
+    // Store credentials in sessionStorage
+    sessionStorage.setItem('agent', AGENTS[username].sheet);
+    sessionStorage.setItem('username', username);
+    sessionStorage.setItem('authenticated', 'true');
+    
+    // Redirect to main page
+    window.location.href = 'index.html';
+  } else {
+    errorMsg.classList.add('show');
+  }
+}
+
+function togglePasswordVisibility(event) {
+  event.preventDefault();
+  const passwordInput = document.getElementById('password');
+  const toggleBtn = document.getElementById('togglePassword');
+  const icon = toggleBtn.querySelector('.material-symbols-outlined');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    icon.textContent = 'visibility_off';
+  } else {
+    passwordInput.type = 'password';
+    icon.textContent = 'visibility';
+  }
+}
+</script>
+
+</body>
+</html>

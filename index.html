@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Call Desk</title>
+<link rel="icon" type="image/png" href="assets/RVLOGO.jpg" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- SET TAYO NG BANNER -->
+<div class="setup-banner" id="setupBanner">
+  ⚙️ <strong>Setup required:</strong> Replace <code>APPS_SCRIPT_URL</code> in <code>js/app.js</code> with your Google Apps Script Web App URL. See the README.
+</div>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Call Desk <span style="font-weight: 400; color: var(--text-muted); margin-left: 8px;" id="agentName"></span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <div class="leads-counter" id="leadsCounter">
+      <span>Dialed: </span>
+      <span id="dialedCount">—</span>
+    </div>
+    <div class="leads-counter" style="background: #d4f4dd; border-color: #9cd7b0; color: var(--accent2);" id="availableCounter">
+      <span>Available: </span>
+      <span id="availableCount">—</span>
+    </div>
+    <div class="call-timer" id="callTimer">
+      <div class="timer-dot"></div>
+      <span id="timerDisplay">00:00</span>
+    </div>
+    <div class="status-bar" id="statusBar">READY</div>
+    <button onclick="logout()" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 500;">Logout</button>
+  </div>
+</div>
+
+<div class="main-container">
+  <div class="left-panel-container">
+  <!-- SALES TABLE -->
+  <div class="sales-panel" style="margin: 0;">
+    <div class="sales-header">
+      <span>Today's Sales</span>
+      <span id="salesTotal" style="font-weight: 700; color: var(--accent);">0</span>
+    </div>
+    <div class="sales-body">
+      <table class="sales-table" id="salesTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+          </tr>
+        </thead>
+        <tbody id="salesTableBody">
+          <tr><td colspan="3" class="sales-empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button class="page-btn" onclick="changeSalesPage(-1)">‹</button>
+      <span class="page-info" id="salesPageInfo">1 / 1</span>
+      <button class="page-btn" onclick="changeSalesPage(1)">›</button>
+    </div>
+  </div>
+
+  <!-- CALLBACKS TABLE -->
+  <div class="callback-panel">
+    <div class="sales-header">
+      <span>Callbacks</span>
+      <span id="callbackTotal" style="font-weight: 700; color: var(--warn);">0</span>
+    </div>
+    <div class="sales-body">
+      <table class="sales-table" id="callbackTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Remarks</th>
+            <th style="width: 80px;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="callbackTableBody">
+          <tr><td colspan="4" class="sales-empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button class="page-btn" onclick="changeCallbackPage(-1)">‹</button>
+      <span class="page-info" id="callbackPageInfo">1 / 1</span>
+      <button class="page-btn" onclick="changeCallbackPage(1)">›</button>
+    </div>
+  </div>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="card">
+  <div class="card-header">
+    <span class="card-title">Lead Record</span>
+    <span class="lead-badge" id="leadBadge">— / —</span>
+  </div>
+
+  <div class="card-body">
+
+    <!-- IDLE -->
+    <div class="idle-state" id="idleState">
+      <div class="idle-icon"><span class="material-symbols-outlined">clinical_notes</span></div>
+      <div class="idle-title">No active lead</div>
+      <div class="idle-sub">Click <strong>Next</strong> to fetch the next available lead from the queue.</div>
+    </div>
+
+    <!-- CLIENT DETAILS -->
+    <div class="client-block" id="clientBlock">
+
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Client Name</span>
+          <span class="info-value" id="clientName">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Phone Number</span>
+          <span class="info-value phone" id="clientPhone">—</span>
+        </div>
+        <div class="info-item full">
+          <span class="info-label">Address</span>
+          <span class="info-value" id="clientAddress">—</span>
+        </div>
+      </div>
+
+      <div class="section-divider">Location</div>
+
+      <div class="location-grid">
+        <div class="form-group">
+          <label class="form-label" for="stateProvince">State / Province</label>
+          <select id="stateProvince">
+            <option value="">— Select Province —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cityMunicipality">City / Municipality</label>
+          <select id="cityMunicipality" disabled>
+            <option value="">— Select City / Municipality —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="townBarangay">Town / Barangay</label>
+          <select id="townBarangay" disabled>
+            <option value="">— Select Barangay —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-divider">Call Details</div>
+
+      <div class="form-group">
+        <label class="form-label" for="remarks">Remarks</label>
+        <textarea id="remarks" placeholder="Enter call notes here…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="callStatus">Call Status</label>
+        <select id="callStatus">
+          <option value="">— Select Status —</option>
+          <option value="ringing">Ringing</option>
+          <option value="sales">Sales</option>
+          <option value="already ordered">Already Ordered</option>
+          <option value="unattended">Unattended</option>
+          <option value="not interested">Not Interested</option>
+          <option value="wrong number">Wrong Number</option>
+          <option value="order cancelled">Order Cancelled</option>
+          <option value="for sched">For Sched</option>
+          <option value="no answer">No Answer</option>
+          <option value="cannot be reached">Cannot Be Reached</option>
+          <option value="company number">Company Number</option>
+          <option value="callback">Callback</option>
+          <option value="ODZ">ODZ</option>
+        </select>
+      </div>
+
+    </div>
+    <!-- /client block -->
+
+    <div class="btn-row" style="margin-top:24px;">
+      <button class="btn btn-next" id="btnNext" onclick="fetchNextLead()">
+        <span id="nextBtnContent">▶ Next Lead</span>
+      </button>
+      <button class="btn btn-end" id="btnEnd" disabled onclick="endCall()">
+        ✕ End Call
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="footer">
+  <span class="footer-note" id="footerNote">Waiting for action</span>
+  <span class="footer-note" id="leadCount"></span>
+</div>
+
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✓</span>
+  <span id="toastMsg">Saved.</span>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+// Check authentication
+if (sessionStorage.getItem('authenticated') !== 'true') {
+  window.location.href = 'login.html';
+}
+
+// Display agent name in header
+const agentName = sessionStorage.getItem('agent') || 'Leads';
+document.getElementById('agentName').textContent = `- ${agentName}`;
+
+// Logout function
+function logout() {
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apps Script Test</title>
+</head>
+<body>
+    <h1>Apps Script CORS Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing...';
+
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxgiLFH8TML2lZBhO8U-qb2HJu5s0BaoawuN_5D6zhsnHq43rv2yq_HYtFb2kjixcaIhg/exec?action=getLeadsCount&agent=AILEEN');
+                const data = await response.text();
+                result.textContent = 'Response: ' + data;
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
