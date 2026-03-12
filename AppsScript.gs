@@ -106,6 +106,7 @@ function updateLead(data, sheetName) {
   ws.getRange(data.row, 7).setValue(data.barangay);
   ws.getRange(data.row, 8).setValue(data.remarks);
   ws.getRange(data.row, 9).setValue(data.callStatus);
+  ws.getRange(data.row, 11).setValue(data.itemsSold || '');
   return JSON.stringify({ success: true });
 }
 

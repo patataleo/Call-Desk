@@ -1,7 +1,5 @@
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYkoNnfn4oIg8mn7GM9BL8QhwEPam_k2E7vzNd82O1alhrvEcXwhNkVz0GMP3qBxgyTA/exec';
-// PSGC public API — no key needed (Philippines location data)
-const PSGC_BASE = 'https://psgc.gitlab.io/api';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwr5NpGAyTr5em_zBjvesDSfe-BUXB1q160TemDivloPrY_cUvqYaWEHOViR6NXRWNGHQ/exec';
 // Get agent from session storage (set by login)
 const AGENT_NAME = sessionStorage.getItem('agent') || 'Leads';
 // ───────────────────────────────────────────────────────────────────────────
@@ -10,7 +8,6 @@ let currentLead = null;
 let callActive = false;
 let timerInterval = null;
 let timerSeconds = 0;
-let locationData = { provinces: [], cities: {}, barangays: {} };
 let salesData = [];
 let callbackData = [];
 let salesPage = 1;
@@ -24,30 +21,39 @@ function jsonp(url, callback) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     const callbackName = 'jsonp_callback_' + Math.random().toString(36).substr(2, 9);
+    let timeoutHandle = null;
 
     window[callbackName] = function(data) {
+      clearTimeout(timeoutHandle);
       delete window[callbackName];
-      document.head.removeChild(script);
+      try {
+        document.head.removeChild(script);
+      } catch (e) {}
       resolve(data);
     };
 
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
     script.onerror = function() {
+      clearTimeout(timeoutHandle);
       delete window[callbackName];
-      document.head.removeChild(script);
+      try {
+        document.head.removeChild(script);
+      } catch (e) {}
       reject(new Error('JSONP request failed'));
     };
 
     document.head.appendChild(script);
 
-    // Timeout after 10 seconds
-    setTimeout(() => {
+    // Timeout after 25 seconds (Apps Script can take up to 6 min, but usually 10-20s)
+    timeoutHandle = setTimeout(() => {
       if (window[callbackName]) {
         delete window[callbackName];
-        document.head.removeChild(script);
-        reject(new Error('JSONP request timeout'));
+        try {
+          document.head.removeChild(script);
+        } catch (e) {}
+        reject(new Error('JSONP request timeout (check console for errors)'));
       }
-    }, 10000);
+    }, 25000);
   });
 }
 
@@ -130,6 +136,7 @@ function populateLead(lead) {
   $('leadBadge').textContent = `ID: ${lead.id || lead.row}`;
 
   $('remarks').value = '';
+  $('itemsSold').value = '';
   $('callStatus').value = '';
   $('stateProvince').value = '';
   $('cityMunicipality').value = '';
@@ -169,12 +176,14 @@ function populateLead(lead) {
 async function endCall() {
   const status = $('callStatus').value;
   const remarks = $('remarks').value.trim();
+  const itemsSold = $('itemsSold').value.trim();
   const province = $('stateProvince').options[$('stateProvince').selectedIndex]?.text || '';
   const city = $('cityMunicipality').options[$('cityMunicipality').selectedIndex]?.text || '';
   const barangay = $('townBarangay').options[$('townBarangay').selectedIndex]?.text || '';
 
   if (!status) { showToast('Please select a Call Status before ending.', 'error'); return; }
   if (!remarks) { showToast('Please enter remarks before ending.', 'error'); return; }
+  if (status.toLowerCase() === 'sales' && !itemsSold) { showToast('Items Sold is required for Sales status.', 'error'); return; }
 
   $('btnEnd').disabled = true;
   $('btnEnd').textContent = 'Saving…';
@@ -184,7 +193,7 @@ async function endCall() {
 
   if (APPS_SCRIPT_URL.includes('YOUR_DEPLOYMENT_ID')) {
     await sleep(800);
-    finishCall(province, city, barangay, status, remarks);
+    finishCall(province, city, barangay, status, remarks, itemsSold);
     return;
   }
 
@@ -194,11 +203,12 @@ async function endCall() {
       row: currentLead.row,
       province, city, barangay,
       remarks, callStatus: status,
+      itemsSold,
       agent: AGENT_NAME
     });
     const data = await jsonp(`${APPS_SCRIPT_URL}?${params.toString()}`);
     if (data.success) {
-      finishCall(province, city, barangay, status, remarks);
+      finishCall(province, city, barangay, status, remarks, itemsSold);
     } else {
       showToast('Update failed. Try again.', 'error');
       $('btnEnd').disabled = false;
@@ -213,7 +223,7 @@ async function endCall() {
   }
 }
 
-function finishCall(province, city, barangay, status, remarks) {
+function finishCall(province, city, barangay, status, remarks, itemsSold) {
   showToast('Call data saved successfully!', 'success');
   setStatus('SAVED');
   $('footerNote').textContent = `Saved — ${status} | ${new Date().toLocaleTimeString()}`;
@@ -233,10 +243,10 @@ function finishCall(province, city, barangay, status, remarks) {
   setTimeout(() => setStatus('READY'), 2000);
 }
 
-// ── PSGC LOCATION DROPDOWNS ───────────────────────────────────────────────
+// ── LOAD PROVINCES FROM PSGC API ───────────────────────────────────────────
 async function loadProvinces() {
   try {
-    const res = await fetch(`${PSGC_BASE}/provinces/`);
+    const res = await fetch('https://psgc.gitlab.io/api/provinces/');
     const provinces = await res.json();
     provinces.sort((a, b) => a.name.localeCompare(b.name));
     const sel = $('stateProvince');
@@ -247,8 +257,7 @@ async function loadProvinces() {
       sel.appendChild(opt);
     });
   } catch (e) {
-    // Fallback: leave with empty
-    console.warn('PSGC province load failed:', e);
+    showToast('Failed to load provinces', 'error');
   }
 }
 
@@ -260,20 +269,13 @@ $('stateProvince').addEventListener('change', async function() {
   cityEl.disabled = true;
   bgyEl.innerHTML = '<option value="">— Select Barangay —</option>';
   bgyEl.disabled = true;
-
   if (!code) { cityEl.innerHTML = '<option value="">— Select City / Municipality —</option>'; return; }
-
   try {
-    const [citiesRes, munRes] = await Promise.all([
-      fetch(`${PSGC_BASE}/provinces/${code}/cities/`).catch(() => ({ json: () => [] })),
-      fetch(`${PSGC_BASE}/provinces/${code}/municipalities/`).catch(() => ({ json: () => [] }))
-    ]);
-    const cities = await citiesRes.json().catch(() => []);
-    const munis = await munRes.json().catch(() => []);
-    const combined = [...(Array.isArray(cities) ? cities : []), ...(Array.isArray(munis) ? munis : [])];
-    combined.sort((a, b) => a.name.localeCompare(b.name));
+    const res = await fetch(`https://psgc.gitlab.io/api/provinces/${code}/cities-municipalities/`);
+    const cities = await res.json();
+    cities.sort((a, b) => a.name.localeCompare(b.name));
     cityEl.innerHTML = '<option value="">— Select City / Municipality —</option>';
-    combined.forEach(c => {
+    cities.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.code;
       opt.textContent = c.name;
@@ -282,6 +284,7 @@ $('stateProvince').addEventListener('change', async function() {
     cityEl.disabled = false;
   } catch (e) {
     cityEl.innerHTML = '<option value="">— Failed to load —</option>';
+    showToast('Failed to load cities', 'error');
   }
 });
 
@@ -291,15 +294,12 @@ $('cityMunicipality').addEventListener('change', async function() {
   bgyEl.innerHTML = '<option value="">— Loading… —</option>';
   bgyEl.disabled = true;
   if (!code) { bgyEl.innerHTML = '<option value="">— Select Barangay —</option>'; return; }
-
   try {
-    // Try city first, then municipality
-    let res = await fetch(`${PSGC_BASE}/cities/${code}/barangays/`);
-    if (!res.ok) res = await fetch(`${PSGC_BASE}/municipalities/${code}/barangays/`);
-    const bgys = await res.json();
-    bgys.sort((a, b) => a.name.localeCompare(b.name));
+    const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${code}/barangays/`);
+    const barangays = await res.json();
+    barangays.sort((a, b) => a.name.localeCompare(b.name));
     bgyEl.innerHTML = '<option value="">— Select Barangay —</option>';
-    bgys.forEach(b => {
+    barangays.forEach(b => {
       const opt = document.createElement('option');
       opt.value = b.code;
       opt.textContent = b.name;
@@ -308,6 +308,7 @@ $('cityMunicipality').addEventListener('change', async function() {
     bgyEl.disabled = false;
   } catch (e) {
     bgyEl.innerHTML = '<option value="">— Failed to load —</option>';
+    showToast('Failed to load barangays', 'error');
   }
 });
 
