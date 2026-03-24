@@ -1,5 +1,5 @@
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwr5NpGAyTr5em_zBjvesDSfe-BUXB1q160TemDivloPrY_cUvqYaWEHOViR6NXRWNGHQ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzg6DohTEAhRF5kriDnQvZiUjvvRlDg_pLit-XrYKnBkEQ05oD72zEQXYQD310PqCjz9g/exec';
 // Get agent from session storage (set by login)
 const AGENT_NAME = sessionStorage.getItem('agent') || 'Leads';
 // ───────────────────────────────────────────────────────────────────────────
@@ -138,11 +138,6 @@ function populateLead(lead) {
   $('remarks').value = '';
   $('itemsSold').value = '';
   $('callStatus').value = '';
-  $('stateProvince').value = '';
-  $('cityMunicipality').value = '';
-  $('townBarangay').value = '';
-  $('cityMunicipality').disabled = true;
-  $('townBarangay').disabled = true;
 
   $('idleState').style.display = 'none';
   $('clientBlock').classList.add('visible');
@@ -177,9 +172,6 @@ async function endCall() {
   const status = $('callStatus').value;
   const remarks = $('remarks').value.trim();
   const itemsSold = $('itemsSold').value.trim();
-  const province = $('stateProvince').options[$('stateProvince').selectedIndex]?.text || '';
-  const city = $('cityMunicipality').options[$('cityMunicipality').selectedIndex]?.text || '';
-  const barangay = $('townBarangay').options[$('townBarangay').selectedIndex]?.text || '';
 
   if (!status) { showToast('Please select a Call Status before ending.', 'error'); return; }
   if (!remarks) { showToast('Please enter remarks before ending.', 'error'); return; }
@@ -193,7 +185,7 @@ async function endCall() {
 
   if (APPS_SCRIPT_URL.includes('YOUR_DEPLOYMENT_ID')) {
     await sleep(800);
-    finishCall(province, city, barangay, status, remarks, itemsSold);
+    finishCall(status, remarks, itemsSold);
     return;
   }
 
@@ -201,14 +193,13 @@ async function endCall() {
     const params = new URLSearchParams({
       action: 'updateLead',
       row: currentLead.row,
-      province, city, barangay,
       remarks, callStatus: status,
       itemsSold,
       agent: AGENT_NAME
     });
     const data = await jsonp(`${APPS_SCRIPT_URL}?${params.toString()}`);
     if (data.success) {
-      finishCall(province, city, barangay, status, remarks, itemsSold);
+      finishCall(status, remarks, itemsSold);
     } else {
       showToast('Update failed. Try again.', 'error');
       $('btnEnd').disabled = false;
@@ -223,7 +214,7 @@ async function endCall() {
   }
 }
 
-function finishCall(province, city, barangay, status, remarks, itemsSold) {
+function finishCall(status, remarks, itemsSold) {
   showToast('Call data saved successfully!', 'success');
   setStatus('SAVED');
   $('footerNote').textContent = `Saved — ${status} | ${new Date().toLocaleTimeString()}`;
@@ -242,75 +233,6 @@ function finishCall(province, city, barangay, status, remarks, itemsSold) {
   loadCallbacks();
   setTimeout(() => setStatus('READY'), 2000);
 }
-
-// ── LOAD PROVINCES FROM PSGC API ───────────────────────────────────────────
-async function loadProvinces() {
-  try {
-    const res = await fetch('https://psgc.gitlab.io/api/provinces/');
-    const provinces = await res.json();
-    provinces.sort((a, b) => a.name.localeCompare(b.name));
-    const sel = $('stateProvince');
-    provinces.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.code;
-      opt.textContent = p.name;
-      sel.appendChild(opt);
-    });
-  } catch (e) {
-    showToast('Failed to load provinces', 'error');
-  }
-}
-
-$('stateProvince').addEventListener('change', async function() {
-  const code = this.value;
-  const cityEl = $('cityMunicipality');
-  const bgyEl = $('townBarangay');
-  cityEl.innerHTML = '<option value="">— Loading… —</option>';
-  cityEl.disabled = true;
-  bgyEl.innerHTML = '<option value="">— Select Barangay —</option>';
-  bgyEl.disabled = true;
-  if (!code) { cityEl.innerHTML = '<option value="">— Select City / Municipality —</option>'; return; }
-  try {
-    const res = await fetch(`https://psgc.gitlab.io/api/provinces/${code}/cities-municipalities/`);
-    const cities = await res.json();
-    cities.sort((a, b) => a.name.localeCompare(b.name));
-    cityEl.innerHTML = '<option value="">— Select City / Municipality —</option>';
-    cities.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.code;
-      opt.textContent = c.name;
-      cityEl.appendChild(opt);
-    });
-    cityEl.disabled = false;
-  } catch (e) {
-    cityEl.innerHTML = '<option value="">— Failed to load —</option>';
-    showToast('Failed to load cities', 'error');
-  }
-});
-
-$('cityMunicipality').addEventListener('change', async function() {
-  const code = this.value;
-  const bgyEl = $('townBarangay');
-  bgyEl.innerHTML = '<option value="">— Loading… —</option>';
-  bgyEl.disabled = true;
-  if (!code) { bgyEl.innerHTML = '<option value="">— Select Barangay —</option>'; return; }
-  try {
-    const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${code}/barangays/`);
-    const barangays = await res.json();
-    barangays.sort((a, b) => a.name.localeCompare(b.name));
-    bgyEl.innerHTML = '<option value="">— Select Barangay —</option>';
-    barangays.forEach(b => {
-      const opt = document.createElement('option');
-      opt.value = b.code;
-      opt.textContent = b.name;
-      bgyEl.appendChild(opt);
-    });
-    bgyEl.disabled = false;
-  } catch (e) {
-    bgyEl.innerHTML = '<option value="">— Failed to load —</option>';
-    showToast('Failed to load barangays', 'error');
-  }
-});
 
 // ── UPDATE LEADS COUNT ───────────────────────────────────────────────────
 async function updateLeadsCount() {
@@ -436,7 +358,6 @@ async function callLead(row) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-loadProvinces();
 updateLeadsCount();
 loadTodaySales();
 loadCallbacks();

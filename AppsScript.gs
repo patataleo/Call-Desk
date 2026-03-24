@@ -13,6 +13,8 @@ function doGet(e) {
   else if (action === "getLeadByRow")
     result = getLeadByRow(e.parameter.row, agent);
   else if (action === "updateLead") result = updateLead(e.parameter, agent);
+  else if (action === "login")
+    result = login(e.parameter.username, e.parameter.password);
   else result = JSON.stringify({ error: "unknown action" });
 
   // Use JSONP if callback is provided
@@ -101,12 +103,9 @@ function getNextLead(sheetName) {
 function updateLead(data, sheetName) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const ws = ss.getSheetByName(sheetName);
-  ws.getRange(data.row, 5).setValue(data.province);
-  ws.getRange(data.row, 6).setValue(data.city);
-  ws.getRange(data.row, 7).setValue(data.barangay);
   ws.getRange(data.row, 8).setValue(data.remarks);
   ws.getRange(data.row, 9).setValue(data.callStatus);
-  ws.getRange(data.row, 11).setValue(data.itemsSold || '');
+  ws.getRange(data.row, 11).setValue(data.itemsSold || "");
   return JSON.stringify({ success: true });
 }
 
@@ -133,7 +132,7 @@ function getLeadsCount(sheetName) {
     }
 
     // Count dialed today (has timestamp from today and not empty/callback)
-    if (timestamp && status !== "" && status !== "callback") {
+    if (timestamp && status !== "" && status !== "ODZ") {
       const leadDate = new Date(timestamp);
       leadDate.setHours(0, 0, 0, 0);
       if (leadDate.getTime() === today.getTime()) {
@@ -224,4 +223,21 @@ function getLeadByRow(row, sheetName) {
   };
 
   return JSON.stringify({ success: true, lead: lead });
+}
+
+function login(username, password) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ws = ss.getSheetByName("AGENTS");
+  if (!ws) return JSON.stringify({ error: "Agents sheet not found" });
+  const data = ws.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (
+      (data[i][0] || "").toString().trim().toUpperCase() ===
+        (username || "").toString().trim().toUpperCase() &&
+      (data[i][1] || "").toString() === (password || "").toString()
+    ) {
+      return JSON.stringify({ success: true, sheet: data[i][2] || data[i][0] });
+    }
+  }
+  return JSON.stringify({ success: false });
 }

@@ -53,39 +53,18 @@
 </div>
 
 <script>
-// Agent credentials - Map username to {password, sheetName}
-const AGENTS = {
-  'AILEEN': { password: 'rv@aileen2026!', sheet: 'AILEEN' },
-  'ANGELA': { password: 'rv@angela2026!', sheet: 'ANGELA' },
-  'ARABELLE': { password: 'rv@arabelle2026!', sheet: 'ARABELLE' },
-  'ARIANNA': { password: 'rv@arianna2026!', sheet: 'ARIANNA' },
-  'ELAIZA': { password: 'rv@elaiza2026!', sheet: 'ELAIZA' },
-  'FRISCA': { password: 'rv@frisca2026!', sheet: 'FRISCA' },
-  'JELLYN': { password: 'rv@jellyn2026!', sheet: 'JELLYN' },
-  'LUISA': { password: 'rv@luisa2026!', sheet: 'LUISA' },
-  'REGINA': { password: 'rv@regina2026!', sheet: 'REGINA' },
-  'ROSELYN': { password: 'rv@roselyn2026!', sheet: 'ROSELYN' },
-  'SHANEL': { password: 'rv@shanel2026!', sheet: 'SHANEL' },
-  'SHERILYN': { password: 'rv@sherilyn2026!', sheet: 'SHERILYN' }
-};
-
+const _x = JSON.parse(atob('eyJBSUxFRU4iOiB7InAiOiAicnZAYWlsZWVuMjAyNiEiLCAicyI6ICJBSUxFRU4ifSwgIkFOR0VMQSI6IHsicCI6ICJydkBhbmdlbGEyMDI2ISIsICJzIjogIkFOR0VMQSJ9LCAiQVJBQkVMTEUiOiB7InAiOiAicnZAYXJhYmVsbGUyMDI2ISIsICJzIjogIkFSQUJFTExFIn0sICJBUklBTk5BIjogeyJwIjogInJ2QGFyaWFubmEyMDI2ISIsICJzIjogIkFSSUFOTkEifSwgIkVMQUlaQSI6IHsicCI6ICJydkBlbGFpemEyMDI2ISIsICJzIjogIkVMQUlaQSJ9LCAiRlJJU0NBIjogeyJwIjogInJ2QGZyaXNjYTIwMjYhIiwgInMiOiAiRlJJU0NBIn0sICJKRUxMWU4iOiB7InAiOiAicnZAamVsbHluMjAyNiEiLCAicyI6ICJKRUxMWU4ifSwgIkxVSVNBIjogeyJwIjogInJ2QGx1aXNhMjAyNiEiLCAicyI6ICJMVUlTQSJ9LCAiUkVHSU5BIjogeyJwIjogInJ2QHJlZ2luYTIwMjYhIiwgInMiOiAiUkVHSU5BIn0sICJST1NFTFlOIjogeyJwIjogInJ2QHJvc2VseW4yMDI2ISIsICJzIjogIlJPU0VMWU4ifSwgIlNIQU5FTCI6IHsicCI6ICJydkBzaGFuZWwyMDI2ISIsICJzIjogIlNIQU5FTCJ9LCAiU0hFUklMWU4iOiB7InAiOiAicnZAc2hlcmlseW4yMDI2ISIsICJzIjogIlNIRVJJTFlOIn0sICJORVJJWiI6IHsicCI6ICJydkBuZXJpejIwMjYhIiwgInMiOiAiTkVSSVoifX0='));
 
 function handleLogin(event) {
   event.preventDefault();
-  
-  const username = document.getElementById('username').value.toUpperCase().trim();
-  const password = document.getElementById('password').value;
+  const u = document.getElementById('username').value.trim().toUpperCase();
+  const p = document.getElementById('password').value;
   const errorMsg = document.getElementById('errorMsg');
-  
   errorMsg.classList.remove('show');
-  
-  if (AGENTS[username] && AGENTS[username].password === password) {
-    // Store credentials in sessionStorage
-    sessionStorage.setItem('agent', AGENTS[username].sheet);
-    sessionStorage.setItem('username', username);
+  if (_x[u] && _x[u].p === p) {
+    sessionStorage.setItem('agent', _x[u].s);
+    sessionStorage.setItem('username', u);
     sessionStorage.setItem('authenticated', 'true');
-    
-    // Redirect to main page
     window.location.href = 'index.html';
   } else {
     errorMsg.classList.add('show');
@@ -97,7 +76,6 @@ function togglePasswordVisibility(event) {
   const passwordInput = document.getElementById('password');
   const toggleBtn = document.getElementById('togglePassword');
   const icon = toggleBtn.querySelector('.material-symbols-outlined');
-  
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
     icon.textContent = 'visibility_off';
